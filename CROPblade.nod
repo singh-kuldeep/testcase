@@ -1,0 +1,6 @@
+# CROP simple MBDyn model, Louis Gagnon 2014
+	structural: CURR_DRUM + CURR_BLADE, dynamic,
+		reference, CURR_DRUM + CURR_BLADE, null,
+		reference, CURR_DRUM + CURR_BLADE, eye,
+		reference, CURR_DRUM + CURR_BLADE, null,
+		reference, CURR_DRUM + CURR_BLADE, null;

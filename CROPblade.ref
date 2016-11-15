@@ -1,0 +1,20 @@
+# CROP simple MBDyn model, Louis Gagnon 2014
+set: CURR_BLADE_ANGLE = 2. * pi * (CURR_BLADE/1000.-1.) / NBLADES ; # angle from positive x-axis, with positive dir. counter-clockwise
+set: ti = -CURR_BLADE_ANGLE/OMEGA;
+
+set: pos_is = theta_s*sin(CURR_BLADE_ANGLE);
+set: pos_ic = theta_c*cos(CURR_BLADE_ANGLE);
+set: pos_is2 = theta_s2*sin(2.*CURR_BLADE_ANGLE);
+set: pos_ic2 = theta_c2*cos(2.*CURR_BLADE_ANGLE);
+set: INIT_OMG_OSC = pos_is + pos_ic + pos_is2 + pos_ic2 + theta_o + CURR_BLADE_ANGLE; # CURR_BLADE_ANGLE is not included because it is taken care of by the total joint initial time condition
+remark: "REF: blade, CURR_BLADE_ANGLE, INIT_OMG_OSC", CURR_BLADE/BLADE_1, CURR_BLADE_ANGLE/pi*180, INIT_OMG_OSC/pi*180 ;
+
+		
+reference: CURR_DRUM + CURR_BLADE,
+	reference, CURR_DRUM, ROTOR_DIAMETER/2. * cos(CURR_BLADE_ANGLE), ROTOR_DIAMETER/2. * sin(CURR_BLADE_ANGLE), 0, # abs. position
+	reference, CURR_DRUM,
+		1, cos(INIT_OMG_OSC), sin(INIT_OMG_OSC), 0,
+		3, 0.,0.,1., # abs. orientation matrix
+	reference, CURR_DRUM, null,
+	reference, CURR_DRUM, 0, 0, -theta_c*sin(-OMEGA*ti)*OMEGA + theta_s*cos(-OMEGA*ti)*OMEGA - theta_c2*sin(-2*OMEGA*ti)*2*OMEGA + theta_s2*cos(-2*OMEGA*ti)*2*OMEGA;  ## initial velocity (derivative of theta function at t=0, see handwritten notes 25 luglio p.1
+	

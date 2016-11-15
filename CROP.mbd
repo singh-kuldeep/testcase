@@ -1,0 +1,295 @@
+# CROP simple MBDyn model, Louis Gagnon 2014
+
+begin: data;
+	problem: initial value;
+end: data;
+
+
+#**********************************************************#
+# Data from autoset by runC and defineValues
+# Geometrical properties
+set: const real ROTOR_DIAMETER = 0.8; # m
+set: const real SPAN = 0.8; # m
+set: const real CHORD = 0.15; # m; estimated
+#**********************************************************#
+
+set: const real PITCH_AXIS = 0.0; # added for testing
+set: const real BC_OFFSET = CHORD*0.30845; # velocity measurement point
+
+set: const integer NBLADES = 6;
+set: real OMEGA = 20.944; #
+
+### theta, radians, negative to start clockwise, careful not to use integers (ie add dot after every number)
+#set: real theta = -0.43633; # here in radians (this is theta_s1 if ratioTheta == 1)
+# theta_o positive to have smaller upper angle (only for Meinhard),
+set: real theta_o = 0; #
+set: real theta_c = 0.2618; #
+#set: theta_c = - theta_c; #
+set: real theta_s = 0; #
+set: real theta_c2 = 0; #
+set: real theta_s2 = 0; #
+#set: real ratioTheta_s = 0; #
+
+
+#remark: "theta, theta_s, theta_c, acosRTS", theta/pi*180, theta_s/pi*180, theta_c/pi*180, acosRTS ;
+
+# service labels
+set: integer CURR_DRUM;
+set: integer CURR_BLADE;
+set: integer CURR_INFLOW;
+set: real CURR_BLADE_ANGLE;
+set: real ti; # initial time offset for balde sine and cosine functions
+set: real INIT_OMG_OSC;
+set: real INIT_OMG_OSC_INNER;
+set: real pos_is;
+set: real pos_ic;
+set: real pos_is2;
+set: real pos_ic2;
+set: real pos_i;
+#set: integer SINDRV;
+
+
+
+
+# labels
+set: const integer GROUND = 0;
+
+set: const integer DRUM_1 = 10000;
+
+set: const integer BLADE_1 = 1000;
+set: const integer BLADE_2 = 2000;
+set: const integer BLADE_3 = 3000;
+set: const integer BLADE_4 = 4000;
+set: const integer BLADE_5 = 5000;
+set: const integer BLADE_6 = 6000;
+
+set: integer AERO_INTEGRATION_POINTS = 1;
+set: integer AERO_JACOBIAN = 0;
+
+
+set: const integer NACA0012 = 12;
+c81 data: NACA0012, "naca0012.c81";
+#c81 data: NACA0012, "naca0012.c81.mod.dat";
+
+
+
+
+set: AERO_JACOBIAN = 1;
+
+
+begin: initial value;
+    initial time: 0.;
+    final time: 10*2*pi / OMEGA;
+    time step: (const real DT = 2.*pi/OMEGA/256./100);
+
+    method: ms, 0.6;
+    tolerance: 1e-2;
+    max iterations: 20; # 20
+    
+    linear solver: umfpack;
+#    linear solver: naive;
+
+    derivatives tolerance: 1e1; # original was 1e-4
+    derivatives max iterations: 10; # original was 10
+
+#     output: iterations;
+#     output: residual;
+end: initial value;
+
+
+begin: control data;
+#	print: equation description;
+#	output: residual;
+	max iterations: 0;
+	output results: netcdf;
+	default output: all;
+	structural nodes:
+		+1			# ground
+		+1			# hub
+
+		+NBLADES*(
+			+1		# blade
+		)
+	;
+
+	rigid bodies:
+		#+1			# hub
+
+		#+NBLADES*(
+		#	+1		# blade
+		#)
+	;
+	
+
+	joints:
+		+1			# ground clamp
+		+1			# drum rotation
+
+		+NBLADES*(
+		0
+			+1		# blade oscillation allowance (rev rot)
+			+1		# blade oscillation (tot joint)
+		)
+	;
+
+	air properties;
+
+	loadable elements:
+		+1			# drum inflow
+	;
+
+	aerodynamic elements:
+		+NBLADES*(
+		0
+			+1		# blade
+		)
+	;
+end: control data;
+
+ module load: "libmodule-cyclocopter.so";
+#module load: "/home/louis/PIF/GSoC/GSoC2016/mbdyn-HEAD/modules/module-cyclocopter/.libs/libmodule-cyclocopter.so";
+
+
+
+
+reference: GROUND,
+	reference, global, null,
+	reference, global, eye,
+	reference, global, null,
+	reference, global, null;
+
+	set: CURR_DRUM = DRUM_1;
+	
+reference: CURR_DRUM,
+	reference, GROUND, null,
+	reference, GROUND, eye,
+	reference, GROUND, null,
+	reference, GROUND, 0., 0., OMEGA;
+		
+set: CURR_BLADE = BLADE_1;
+include: "CROPblade.ref";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.ref";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.ref";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.ref";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.ref";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.ref";
+	
+
+
+begin: nodes;
+	structural: GROUND, static,
+		reference, GROUND, null,
+		reference, GROUND, eye,
+		reference, GROUND, null,
+		reference, GROUND, null;
+
+	set: CURR_DRUM = DRUM_1;
+	structural: CURR_DRUM, dynamic,
+		reference, CURR_DRUM, null,
+		reference, CURR_DRUM, eye,
+		reference, CURR_DRUM, null,
+		reference, CURR_DRUM, null;
+		
+set: CURR_BLADE = BLADE_1;	
+include: "CROPblade.nod";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.nod";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.nod";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.nod";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.nod";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.nod";
+
+
+end: nodes;
+
+begin: elements;
+
+	joint: GROUND, clamp, GROUND, node, node;
+
+#	air properties: std, SI,
+#		null;
+
+	air properties:
+		#std, SI,
+		 1.204, 343.,
+		1., 0., 0., const, 0.;
+
+	set: CURR_DRUM = DRUM_1;
+			
+	joint: CURR_DRUM, axial rotation,  # drum rotation
+	 GROUND,
+	 position, null,
+	orientation, eye,
+	 CURR_DRUM,
+	 position, null,
+	orientation, eye,
+	const, OMEGA;
+
+################# model with inflow from cyclogyro, ##################
+user defined: CURR_DRUM, # inflow model, cyclocopter
+# cyclocopter no inflow,
+# cyclocopter uniform 1D,
+# cyclocopter uniform 2D,
+# cyclocopter Polimi,
+ cyclocopter DMST, # Uncomment the line no 284 to 289
+# help,
+GROUND,
+orientation,
+	reference, node,
+		1, 0., 0., 1.,
+		3, 0., 1., 0.,
+GROUND, # or also works: DRUM_1,
+#CURR_DRUM,
+
+#/*
+
+  0, # no average
+# 1, # average 
+ROTOR_DIAMETER/2.,
+SPAN,
+delay,
+const, 
+0.5,
+omegacut, 1*OMEGA, # 3.3*2*pi,
+#kappa, 2.1169, # hover empirical correction coefficient for other models
+kappa, 1.15, # 3D effect for DMST model
+timestep, DT,
+omega, OMEGA,
+CURR_DRUM + BLADE_1,
+CURR_DRUM + BLADE_2,
+CURR_DRUM + BLADE_3,
+CURR_DRUM + BLADE_4,
+CURR_DRUM + BLADE_5,
+CURR_DRUM + BLADE_6,
+0, # this shows that blade label input ends here
+output, yes;	
+#*/
+
+################# ,model with inflow from cyclogyro ##################
+
+
+set: CURR_INFLOW = CURR_DRUM ;
+set: CURR_BLADE = BLADE_1;
+include: "CROPblade.elm";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.elm";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.elm";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.elm";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.elm";
+set: CURR_BLADE = CURR_BLADE + 1000;
+include: "CROPblade.elm";
+	
+end: elements;
+	
