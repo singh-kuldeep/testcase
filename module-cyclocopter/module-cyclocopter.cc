@@ -52,6 +52,8 @@
 #include "aeroelem.h"
 #include <complex>
 
+#include "drive_.h" // required to get current time
+
 /* CyclocopterInflow - begin */
 
 /* Base class for cycloidal rotor  inflow models:
@@ -1632,6 +1634,8 @@ protected:
 
 	/* data for force filtering */
 	Vec3 Uk, Uk_1, Uk_2, Yk, Yk_1, Yk_2;
+	
+	DriveOwner	tdc;		// time drive
 
 public:
 	CyclocopterDMST(unsigned int uL, const DofOwner* pDO,
@@ -1769,6 +1773,8 @@ EmptyCheck(true)
 		}
 	}
 	NBlades = uBlade.size();
+	
+	tdc.Set(new TimeDriveCaller(pDM->pGetDrvHdl()));
 
 	SetOutputFlag(pDM->fReadOutput(HP, Elem::INDUCEDVELOCITY));
 
@@ -2318,8 +2324,9 @@ CyclocopterDMST::GetInducedVelocity(Elem::Type type,
 		dUindDMSTAvg +=(dBladeUind[i]/NBlades);
 	}
 	std::cout << "dBlade 1 position " << dBladePos[0] << "  angle   " << atan2(dBladePos[0](2),dBladePos[0](3))*180/M_PI<< std::endl;
-	// std::cout << uLabel <<"\t" << GlobalCount <<"\t" << "2D" << "\t" << dUind << "\t" <<dUind.Norm() << "\t" << "DMST" << "\t" << dUindSet << "\t" << dUindSet.Norm() << std::endl;
-	return RRotor*(dUindSet); // DMST model
+	std::cout << uLabel <<"\t" << GlobalCount <<"\t" << "2D" << "\t" << dUind << "\t" <<dUind.Norm() << "\t" << "DMST" << "\t" << dUindSet << "\t" << dUindSet.Norm() << std::endl;
+	silent_cout("fmax()" << fmin(tdc.dGet(),1.) << std::endl);
+	return RRotor*(dUindSet)*fmin(tdc.dGet(),1.); // DMST model
 	// return RRotor*(dUind); // 2D model
 }
 
