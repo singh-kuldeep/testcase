@@ -80,7 +80,7 @@ set: AERO_JACOBIAN = 1;
 begin: initial value;
     initial time: 0.;
     final time: 10*2*pi / OMEGA;
-    time step: (const real DT = 2.*pi/OMEGA/256./100);
+    time step: (const real DT = 2.*pi/OMEGA/256.);
 
     method: ms, 0.6;
     tolerance: 1e-2;
@@ -147,7 +147,7 @@ begin: control data;
 end: control data;
 
  module load: "libmodule-cyclocopter.so";
-#module load: "/home/louis/PIF/GSoC/GSoC2016/mbdyn-HEAD/modules/module-cyclocopter/.libs/libmodule-cyclocopter.so";
+# module load: "/home/louis/bin/mbdyn-1.7.1/modules/module-cyclocopter/.libs/libmodule-cyclocopter.so";
 
 
 
